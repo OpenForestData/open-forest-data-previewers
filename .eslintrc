@@ -1,0 +1,19 @@
+{
+  "extends": ["eslint:recommended", "airbnb", "prettier"],
+  "plugins": ["prettier"],
+  "env": {
+    "browser": true
+  },
+  "rules": {
+    "prettier/prettier": ["error"],
+    "linebreak-style": "off",
+    "no-unused-expressions": "warn",
+    "dot-notation": "off",
+    "no-param-reassign": "off"
+  },
+  "globals": {
+    "startPreview": true,
+    "axios": true,
+    "THREE": true
+  }
+}
