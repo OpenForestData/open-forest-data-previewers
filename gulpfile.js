@@ -78,7 +78,7 @@ const watchBuilderGlobalStyles = () => {
 };
 
 const cleanDist = () => {
-  return src('./dist', { read: false }).pipe(clean());
+  return src('./dist', { read: false, allowEmpty: true }).pipe(clean());
 };
 
 const serve = () => {
