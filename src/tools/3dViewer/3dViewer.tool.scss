@@ -79,3 +79,28 @@ body {
     }
   }
 }
+
+.metadata-table-container {
+  width: 250px;
+  background-color: #cccccc;
+  color: #222222;
+  height: 100%;
+  padding: 56px 10px 20px 10px;
+  box-sizing: border-box;
+
+  table {
+    border-collapse: collapse;
+    font-size: 12px;
+
+    td {
+      word-break: break-word;
+      padding: 4px 5px;
+      background-color: #d0d0d0;
+      border: 1px solid #aaaaaa;
+
+      &:first-child {
+        width: 40%;
+      }
+    }
+  }
+}

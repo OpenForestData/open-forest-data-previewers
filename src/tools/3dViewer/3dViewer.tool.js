@@ -5,7 +5,7 @@ import { TDSLoader } from 'three/examples/jsm/loaders/TDSLoader';
 import OrbitControlsThree from 'three-orbit-controls';
 
 import startPreview from '../core/js/retriever';
-import { getFileName, getFileExtension, ErrorModal } from '../core/js/utils';
+import { getFileName, bytesToSize, getFileExtension, ErrorModal } from '../core/js/utils';
 
 const OrbitControls = OrbitControlsThree(THREE);
 
@@ -26,6 +26,33 @@ const getModelTextures = (datasetFile, files) => {
       file.dataFile.filename === 'texture.png'
     );
   });
+};
+
+const fitCameraToSelection = (camera, controls, selection, fitOffset = 1.2) => {
+  const box = new THREE.Box3();
+
+  box.expandByObject(selection);
+
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+
+  const maxSize = Math.max(size.x, size.y, size.z);
+  const fitHeightDistance = maxSize / (2 * Math.atan((Math.PI * camera.fov) / 360));
+  const fitWidthDistance = fitHeightDistance / camera.aspect;
+  const distance = fitOffset * Math.max(fitHeightDistance, fitWidthDistance);
+
+  const direction = controls.target.clone().sub(camera.position).normalize().multiplyScalar(distance);
+
+  controls.maxDistance = distance * 10;
+  controls.target.copy(center);
+
+  camera.near = distance / 100;
+  camera.far = distance * 100;
+  camera.updateProjectionMatrix();
+
+  camera.position.copy(controls.target).sub(direction);
+
+  controls.update();
 };
 
 const generateOBJLoader = () => {
@@ -121,9 +148,35 @@ const controlRotationHandler = (geometry, camera, controls) => {
       }
 
       camera.position.set(x, y, z);
-      controls.update();
+      // controls.update();
+      fitCameraToSelection(camera, controls, geometry);
     });
   }
+};
+
+const renderMetaData = ({ tableData }) => {
+  const tableContainer = document.createElement('div');
+  tableContainer.classList.add('metadata-table-container');
+  const table = document.createElement('table');
+
+  tableData.forEach((row) => {
+    const tr = document.createElement('tr');
+
+    const tdName = document.createElement('td');
+    const tdValue = document.createElement('td');
+
+    tdName.innerHTML = row['name'];
+    tdValue.innerHTML = row['value'];
+
+    tr.appendChild(tdName);
+    tr.appendChild(tdValue);
+
+    table.appendChild(tr);
+  });
+
+  tableContainer.appendChild(table);
+
+  document.querySelector('#root').insertBefore(tableContainer, document.querySelector('#root canvas'));
 };
 
 const init = ({ datasetFile, datasetFiles }) => {
@@ -134,10 +187,10 @@ const init = ({ datasetFile, datasetFiles }) => {
 
   const scene = new THREE.Scene();
 
-  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+  const camera = new THREE.PerspectiveCamera(45, (window.innerWidth - 250) / window.innerHeight, 0.1, 1000);
 
   const webGLRenderer = new THREE.WebGLRenderer({ alpha: true });
-  webGLRenderer.setSize(window.innerWidth, window.innerHeight);
+  webGLRenderer.setSize(window.innerWidth - 250, window.innerHeight);
   webGLRenderer.shadowMapEnabled = true;
 
   camera.position.x = 0;
@@ -187,13 +240,36 @@ const init = ({ datasetFile, datasetFiles }) => {
           scene.add(group);
 
           controlRotationHandler(group, camera, controls);
+          fitCameraToSelection(camera, controls, group);
           removeOBJLoader();
+
+          let vertex = 0;
+
+          geometry.children.forEach((children) => {
+            if (children.geometry) {
+              vertex += children.geometry.attributes.position.count;
+            }
+          });
+
+          setTimeout(() => {
+            renderMetaData({
+              tableData: [
+                { name: 'File name', value: datasetFile.dataFile.filename },
+                { name: 'File size', value: bytesToSize(datasetFile.dataFile.filesize) },
+                { name: 'Vertex count', value: vertex },
+                { name: 'Triangle count', value: webGLRenderer.info.render.triangles },
+              ],
+            });
+          }, 500);
         },
         (xhr) => {
           if (xhr.lengthComputable) {
             const percentComplete = (xhr.loaded / xhr.total) * 100;
             updateOBJLoaderProgress(Math.round(percentComplete));
           }
+        },
+        () => {
+          new ErrorModal({ message: 'There was a problem loading the file' });
         }
       );
       break;
@@ -208,8 +284,10 @@ const init = ({ datasetFile, datasetFiles }) => {
       loader.load(
         datasetFile.url,
         (geometry) => {
-          textures.forEach((texture) => {
+          const texturesData = [];
+          textures.forEach((texture, i) => {
             const text = new THREE.TextureLoader().load(texture.url);
+            texturesData.push({ name: `Texture #${i + 1} name`, value: texture.dataFile.filename });
             geometry.traverse((child) => {
               if (child.type && child.type === 'Mesh') {
                 child.material.map = text;
@@ -225,13 +303,37 @@ const init = ({ datasetFile, datasetFiles }) => {
 
           scene.add(geometry);
           controlRotationHandler(geometry, camera, controls);
+          fitCameraToSelection(camera, controls, geometry);
           removeOBJLoader();
+
+          let vertex = 0;
+
+          geometry.children.forEach((children) => {
+            if (children.geometry) {
+              vertex += children.geometry.attributes.position.count;
+            }
+          });
+
+          setTimeout(() => {
+            renderMetaData({
+              tableData: [
+                { name: 'File name', value: datasetFile.dataFile.filename },
+                { name: 'File size', value: bytesToSize(datasetFile.dataFile.filesize) },
+                { name: 'Vertex count', value: vertex },
+                { name: 'Triangle count', value: webGLRenderer.info.render.triangles },
+                ...texturesData,
+              ],
+            });
+          }, 500);
         },
         (xhr) => {
           if (xhr.lengthComputable) {
             const percentComplete = (xhr.loaded / xhr.total) * 100;
             updateOBJLoaderProgress(Math.round(percentComplete));
           }
+        },
+        () => {
+          new ErrorModal({ message: 'There was a problem loading the file' });
         }
       );
 
@@ -245,19 +347,52 @@ const init = ({ datasetFile, datasetFiles }) => {
       loader.load(
         datasetFile.url,
         (geometry) => {
+          var materialObj = new THREE.MeshBasicMaterial({
+            vertexColors: THREE.FaceColors,
+          });
+          geometry.traverse(function (child) {
+            if (child instanceof THREE.Mesh) {
+              child.material = materialObj;
+            }
+          });
+
           geometry.scale.set(0.6, 0.6, 0.6);
+
           spotLight.target = geometry;
           spotLightBack.target = geometry;
 
           scene.add(geometry);
           controlRotationHandler(geometry, camera, controls);
+          fitCameraToSelection(camera, controls, geometry);
           removeOBJLoader();
+
+          let vertex = 0;
+
+          geometry.children.forEach((children) => {
+            if (children.geometry) {
+              vertex += children.geometry.attributes.position.count;
+            }
+          });
+
+          setTimeout(() => {
+            renderMetaData({
+              tableData: [
+                { name: 'File name', value: datasetFile.dataFile.filename },
+                { name: 'File size', value: bytesToSize(datasetFile.dataFile.filesize) },
+                { name: 'Vertex count', value: vertex },
+                { name: 'Triangle count', value: webGLRenderer.info.render.triangles },
+              ],
+            });
+          }, 500);
         },
         (xhr) => {
           if (xhr.lengthComputable) {
             const percentComplete = (xhr.loaded / xhr.total) * 100;
             updateOBJLoaderProgress(Math.round(percentComplete));
           }
+        },
+        () => {
+          new ErrorModal({ message: 'There was a problem loading the file' });
         }
       );
       break;
