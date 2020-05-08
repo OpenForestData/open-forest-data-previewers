@@ -10,6 +10,7 @@ const startPreview = (retrieveFile, callback = () => {}) => {
 
   const fileId = queryParams.get('fileid');
   siteUrl = queryParams.get('siteUrl');
+  if (siteUrl[siteUrl.length - 1] !== '/') siteUrl += '/';
   const apiKey = queryParams.get('key');
   const datasetId = queryParams.get('datasetid');
   const datasetVersion = queryParams.get('datasetversion');

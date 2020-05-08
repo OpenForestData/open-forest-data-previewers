@@ -1,14 +1,16 @@
 import * as THREE from 'three';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
+import { TDSLoader } from 'three/examples/jsm/loaders/TDSLoader';
 import OrbitControlsThree from 'three-orbit-controls';
 
 import startPreview from '../core/js/retriever';
-import { getFileName, getFileExtension } from '../core/js/utils';
+import { getFileName, getFileExtension, ErrorModal } from '../core/js/utils';
 
 const OrbitControls = OrbitControlsThree(THREE);
 
 const CONFIG = {
-  maxFileSize: 100000000,
+  maxFileSize: 50000000,
   texturesExtensions: ['png'],
   showHelpers: false,
 };
@@ -26,9 +28,108 @@ const getModelTextures = (datasetFile, files) => {
   });
 };
 
+const generateOBJLoader = () => {
+  const loaderContainer = document.createElement('div');
+  loaderContainer.classList.add('obj-file-loader-container');
+
+  const loaderProgress = document.createElement('p');
+  loaderProgress.classList.add('obj-file-loader-progress');
+  loaderContainer.appendChild(loaderProgress);
+
+  const loaderBar = document.createElement('div');
+  loaderBar.classList.add('obj-file-loader-bar');
+  loaderContainer.appendChild(loaderBar);
+
+  const root = document.querySelector('#root');
+  root.classList.add('loading');
+  document.querySelector('body').appendChild(loaderContainer);
+};
+
+const updateOBJLoaderProgress = (progress) => {
+  const loaderBar = document.querySelector('.obj-file-loader-bar');
+  loaderBar.style.width = `${progress}%`;
+
+  const loaderProgress = document.querySelector('.obj-file-loader-progress');
+  loaderProgress.innerHTML = `${progress}%`;
+};
+
+const removeOBJLoader = () => {
+  const loaderContainer = document.querySelector('.obj-file-loader-container');
+  loaderContainer.remove();
+  const root = document.querySelector('#root');
+  root.classList.remove('loading');
+};
+
+const controlRotationHandler = (geometry, camera, controls) => {
+  const buttons = document.querySelectorAll('.rotate-object');
+
+  for (const button of buttons) {
+    button.addEventListener('click', (e) => {
+      controls.reset();
+
+      const vector = e.target.dataset['vector'];
+
+      let x = 0;
+      let y = 0;
+      let z = 0;
+
+      switch (vector) {
+        case 'top': {
+          x = 0;
+          y = 150;
+          z = 0;
+          break;
+        }
+
+        case 'bottom': {
+          x = 0;
+          y = -150;
+          z = 0;
+          break;
+        }
+
+        case 'front': {
+          x = 0;
+          y = 0;
+          z = 150;
+          break;
+        }
+
+        case 'back': {
+          x = 0;
+          y = 0;
+          z = -150;
+          break;
+        }
+
+        case 'left': {
+          x = -150;
+          y = 0;
+          z = 0;
+          break;
+        }
+
+        case 'right': {
+          x = 150;
+          y = 0;
+          z = 0;
+          break;
+        }
+
+        default:
+          break;
+      }
+
+      camera.position.set(x, y, z);
+      controls.update();
+    });
+  }
+};
+
 const init = ({ datasetFile, datasetFiles }) => {
   if (datasetFile.dataFile.filesize > CONFIG.maxFileSize) {
-    throw new Error('File is too big');
+    new ErrorModal({ message: 'File size too large' });
+    return;
   }
 
   const scene = new THREE.Scene();
@@ -73,15 +174,28 @@ const init = ({ datasetFile, datasetFiles }) => {
 
   switch (getFileExtension(datasetFile.dataFile.filename)) {
     case 'stl': {
-      const loader = new THREE.STLLoader();
-      loader.load(datasetFile.url, (geometry) => {
-        const mat = new THREE.MeshLambertMaterial({ color: 0x7777ff });
-        group = new THREE.Mesh(geometry, mat);
-        group.rotation.x = -0.5 * Math.PI;
-        group.rotation.z = -0.5 * Math.PI;
-        group.scale.set(0.6, 0.6, 0.6);
-        scene.add(group);
-      });
+      const loader = new STLLoader();
+      generateOBJLoader();
+      loader.load(
+        datasetFile.url,
+        (geometry) => {
+          const mat = new THREE.MeshLambertMaterial({ color: 0x7777ff });
+          group = new THREE.Mesh(geometry, mat);
+          group.rotation.x = -0.5 * Math.PI;
+          group.rotation.z = -0.5 * Math.PI;
+          group.scale.set(0.6, 0.6, 0.6);
+          scene.add(group);
+
+          controlRotationHandler(group, camera, controls);
+          removeOBJLoader();
+        },
+        (xhr) => {
+          if (xhr.lengthComputable) {
+            const percentComplete = (xhr.loaded / xhr.total) * 100;
+            updateOBJLoaderProgress(Math.round(percentComplete));
+          }
+        }
+      );
       break;
     }
 
@@ -89,30 +203,69 @@ const init = ({ datasetFile, datasetFiles }) => {
       const loader = new OBJLoader();
       group = new THREE.Object3D();
 
-      loader.load(datasetFile.url, (geometry) => {
-        textures.forEach((texture) => {
-          const text = new THREE.TextureLoader().load(texture.url);
-          geometry.traverse((child) => {
-            if (child.type && child.type === 'Mesh') {
-              child.material.map = text;
-            }
+      generateOBJLoader();
+
+      loader.load(
+        datasetFile.url,
+        (geometry) => {
+          textures.forEach((texture) => {
+            const text = new THREE.TextureLoader().load(texture.url);
+            geometry.traverse((child) => {
+              if (child.type && child.type === 'Mesh') {
+                child.material.map = text;
+              }
+            });
           });
-        });
 
-        group.rotation.x = -0.5 * Math.PI;
-        group.rotation.z = -0.5 * Math.PI;
-        geometry.scale.set(0.6, 0.6, 0.6);
-        spotLight.target = geometry;
-        spotLightBack.target = geometry;
+          group.rotation.x = -0.5 * Math.PI;
+          group.rotation.z = -0.5 * Math.PI;
+          geometry.scale.set(0.6, 0.6, 0.6);
+          spotLight.target = geometry;
+          spotLightBack.target = geometry;
 
-        scene.add(geometry);
-      });
+          scene.add(geometry);
+          controlRotationHandler(geometry, camera, controls);
+          removeOBJLoader();
+        },
+        (xhr) => {
+          if (xhr.lengthComputable) {
+            const percentComplete = (xhr.loaded / xhr.total) * 100;
+            updateOBJLoaderProgress(Math.round(percentComplete));
+          }
+        }
+      );
 
       break;
     }
 
+    case '3ds': {
+      const loader = new TDSLoader();
+      generateOBJLoader();
+
+      loader.load(
+        datasetFile.url,
+        (geometry) => {
+          geometry.scale.set(0.6, 0.6, 0.6);
+          spotLight.target = geometry;
+          spotLightBack.target = geometry;
+
+          scene.add(geometry);
+          controlRotationHandler(geometry, camera, controls);
+          removeOBJLoader();
+        },
+        (xhr) => {
+          if (xhr.lengthComputable) {
+            const percentComplete = (xhr.loaded / xhr.total) * 100;
+            updateOBJLoaderProgress(Math.round(percentComplete));
+          }
+        }
+      );
+      break;
+    }
+
     default: {
-      throw new Error('Unsupported file type');
+      new ErrorModal({ message: 'Unsupported file type' });
+      break;
     }
   }
 
