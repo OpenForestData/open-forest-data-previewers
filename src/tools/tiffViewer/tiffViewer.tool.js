@@ -1,6 +1,9 @@
+import axios from 'axios';
+
 import startPreview from '../core/js/retriever';
 
-const SERVER = 'https://iipsrv.whiteaster.com//fcgi-bin/iipsrv.fcgi';
+const SERVER = 'https://iipsrv.whiteaster.com/fcgi-bin/iipsrv.fcgi';
+const TIFF_UPLOADER = 'https://tiffdownloader.whiteaster.com/tiff';
 
 const previewTiff = ({ server = SERVER, image }) => {
   const root = document.querySelector('#root');
@@ -15,26 +18,34 @@ const previewTiff = ({ server = SERVER, image }) => {
   });
 };
 
-const configTiff = () => {
-  // CONFIG
-  previewTiff({
-    image: 'PalaisDuLouvre.tif',
+const configTiff = (fileId, doi) => {
+  axios(`${TIFF_UPLOADER}?file_id=${fileId}&dataset_pid=${doi}`, {
+    headers: {
+      'Content-Type': 'text/plain',
+    },
+  }).then((response) => {
+    previewTiff({
+      image: response['data']['filepath'],
+    });
   });
 };
 
-const init = ({ datasetFile, datasetFiles }) => {
+const init = ({ datasetFile, dataset }) => {
   document.querySelectorAll('.action-button').forEach((button) => {
     button.addEventListener('click', (e) => {
+      console.log(datasetFile, dataset);
       switch (e.target.dataset.action) {
         case 'preview': {
           previewTiff({
-            image: 'PalaisDuLouvre.tif',
+            image: `${dataset.datasetPersistentId.replace(/\//g, '-').replace('doi:', '')}/${
+              datasetFile.dataFile.filename
+            }`,
           });
           break;
         }
 
         case 'config': {
-          configTiff();
+          configTiff(datasetFile.dataFile.id, dataset.datasetPersistentId);
           break;
         }
 
