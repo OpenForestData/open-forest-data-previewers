@@ -1,0 +1,19 @@
+body {
+  overflow: hidden;
+}
+
+#action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.button {
+  margin: 0 20px;
+  cursor: pointer;
+  border: none;
+  background-color: #ddd;
+  border-radius: 8px;
+  padding: 8px 13px;
+}

@@ -87,6 +87,8 @@ body {
   height: 100%;
   padding: 56px 10px 20px 10px;
   box-sizing: border-box;
+  max-height: 100%;
+  overflow-y: auto;
 
   table {
     border-collapse: collapse;
@@ -100,6 +102,56 @@ body {
 
       &:first-child {
         width: 40%;
+      }
+    }
+  }
+}
+
+.meshes-container {
+  h3 {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  ol {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    display: none;
+    font-size: 12px;
+
+    &.show {
+      display: block;
+    }
+
+    li {
+      margin-bottom: 4px;
+      padding-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-direction: row-reverse;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+
+      button {
+        background-color: transparent;
+        border: none;
+        margin-right: 5px;
+        cursor: pointer;
+        padding: 0;
+
+        &:first-child {
+          margin-right: 9px;
+        }
+
+        &:focus {
+          outline: none;
+        }
+
+        img {
+          height: 15px;
+          display: block;
+        }
       }
     }
   }

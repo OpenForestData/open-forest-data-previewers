@@ -22,7 +22,8 @@ const startPreview = (retrieveFile, callback = () => {}) => {
   }
 
   axios.get(versionUrl).then((response) => {
-    const data = response['data']['data'];
+    let data = response['data']['data'];
+    data = data['latestVersion'] ? data['latestVersion'] : data;
     let files = data['files'].map((file) => {
       file.url = `${siteUrl}api/access/datafile/${file.dataFile.id}`;
       return file;
@@ -43,11 +44,11 @@ const startPreview = (retrieveFile, callback = () => {}) => {
 
     if (retrieveFile) {
       axios.get(datasetFile.url).then((fileResponse) => {
-        console.log(fileResponse);
+        callback({ datasetFile, datasetFiles, dataset, file: fileResponse });
       });
+    } else {
+      callback({ datasetFile, datasetFiles, dataset });
     }
-
-    callback({ datasetFile, datasetFiles, dataset });
   });
 };
 

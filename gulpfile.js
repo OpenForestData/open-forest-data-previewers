@@ -16,26 +16,28 @@ sass.compiler = require('node-sass');
 // });
 
 const bundleJs = () => {
-  return src('./src/tools/**/*.tool.js')
-    .pipe(
-      browserify({
-        insertGlobals: true,
-        global: true,
-        transform: [
-          babelify.configure({
-            plugins: ['@babel/plugin-syntax-dynamic-import'],
-            presets: ['@babel/preset-env'],
-          }),
-        ],
-      })
-    )
-    .pipe(uglify())
-    .pipe(
-      rename((path) => {
-        path.basename = path.basename.replace('.tool', '.bundle.min');
-      })
-    )
-    .pipe(dest('./dist/tools/assets/js'));
+  return (
+    src('./src/tools/**/*.tool.js')
+      .pipe(
+        browserify({
+          insertGlobals: true,
+          global: true,
+          transform: [
+            babelify.configure({
+              plugins: ['@babel/plugin-syntax-dynamic-import'],
+              presets: ['@babel/preset-env'],
+            }),
+          ],
+        })
+      )
+      // .pipe(uglify())
+      .pipe(
+        rename((path) => {
+          path.basename = path.basename.replace('.tool', '.bundle.min');
+        })
+      )
+      .pipe(dest('./dist/tools/assets/js'))
+  );
 };
 
 const copyHtml = () => {

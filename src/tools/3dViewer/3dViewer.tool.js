@@ -29,9 +29,9 @@ const getModelTextures = (datasetFile, files) => {
 };
 
 const fitCameraToSelection = (camera, controls, selection, fitOffset = 1.2) => {
-  const box = new THREE.Box3();
+  const box = new THREE.Box3().setFromObject(selection);
 
-  box.expandByObject(selection);
+  // box.expandByObject(selection);
 
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
@@ -53,6 +53,67 @@ const fitCameraToSelection = (camera, controls, selection, fitOffset = 1.2) => {
   camera.position.copy(controls.target).sub(direction);
 
   controls.update();
+};
+
+const getMeshesFromObject = (geometry) => {
+  return geometry.children || [];
+};
+
+const setMeshes = (meshes, camera, controls) => {
+  const root = document.querySelector('.metadata-table-container');
+
+  const meshesContainer = document.createElement('div');
+  meshesContainer.classList.add('meshes-container');
+
+  const meshesTitle = document.createElement('h3');
+  meshesTitle.classList.add('meshes-title');
+  meshesTitle.innerHTML = 'Show meshes';
+
+  const meshesList = document.createElement('ol');
+
+  meshes.forEach((mesh) => {
+    const meshItem = document.createElement('li');
+    meshItem.innerHTML = mesh.name === '' ? 'Default' : mesh.name;
+
+    const fitMesh = document.createElement('button');
+    fitMesh.innerHTML = '<img src="/tools/assets/images/fit_black.png"/>';
+
+    fitMesh.addEventListener('click', () => {
+      fitCameraToSelection(camera, controls, mesh);
+    });
+
+    const highlightMesh = document.createElement('button');
+    highlightMesh.innerHTML = '<img src="/tools/assets/images/highlight_off.png"/>';
+
+    highlightMesh.addEventListener('click', () => {
+      if (highlightMesh.classList.contains('highlight')) {
+        highlightMesh.classList.remove('highlight');
+        mesh.material.emissive.setHex(0);
+        highlightMesh.innerHTML = '<img src="/tools/assets/images/highlight_off.png"/>';
+      } else {
+        highlightMesh.classList.add('highlight');
+        mesh.material.emissive.setHex(0x555555);
+        highlightMesh.innerHTML = '<img src="/tools/assets/images/highlight_on.png"/>';
+      }
+    });
+
+    meshItem.appendChild(fitMesh);
+    meshItem.appendChild(highlightMesh);
+
+    meshesList.appendChild(meshItem);
+  });
+
+  meshesContainer.appendChild(meshesTitle);
+  meshesContainer.appendChild(meshesList);
+
+  root.appendChild(meshesContainer);
+
+  meshesTitle.addEventListener('click', (e) => {
+    meshesList.classList.toggle('show');
+    meshesTitle.classList.toggle('active');
+
+    meshesTitle.innerHTML = meshesTitle.classList.contains('active') ? 'Hide meshes' : 'Show meshes';
+  });
 };
 
 const generateOBJLoader = () => {
@@ -105,6 +166,8 @@ const controlRotationHandler = (geometry, camera, controls) => {
           x = 0;
           y = 150;
           z = 0;
+          camera.position.set(x, y, z);
+          fitCameraToSelection(camera, controls, geometry);
           break;
         }
 
@@ -112,6 +175,8 @@ const controlRotationHandler = (geometry, camera, controls) => {
           x = 0;
           y = -150;
           z = 0;
+          camera.position.set(x, y, z);
+          fitCameraToSelection(camera, controls, geometry);
           break;
         }
 
@@ -119,6 +184,8 @@ const controlRotationHandler = (geometry, camera, controls) => {
           x = 0;
           y = 0;
           z = 150;
+          camera.position.set(x, y, z);
+          fitCameraToSelection(camera, controls, geometry);
           break;
         }
 
@@ -126,6 +193,8 @@ const controlRotationHandler = (geometry, camera, controls) => {
           x = 0;
           y = 0;
           z = -150;
+          camera.position.set(x, y, z);
+          fitCameraToSelection(camera, controls, geometry);
           break;
         }
 
@@ -133,6 +202,8 @@ const controlRotationHandler = (geometry, camera, controls) => {
           x = -150;
           y = 0;
           z = 0;
+          camera.position.set(x, y, z);
+          fitCameraToSelection(camera, controls, geometry);
           break;
         }
 
@@ -140,6 +211,8 @@ const controlRotationHandler = (geometry, camera, controls) => {
           x = 150;
           y = 0;
           z = 0;
+          camera.position.set(x, y, z);
+          fitCameraToSelection(camera, controls, geometry);
           break;
         }
 
@@ -147,9 +220,7 @@ const controlRotationHandler = (geometry, camera, controls) => {
           break;
       }
 
-      camera.position.set(x, y, z);
       // controls.update();
-      fitCameraToSelection(camera, controls, geometry);
     });
   }
 };
@@ -234,6 +305,7 @@ const init = ({ datasetFile, datasetFiles }) => {
         (geometry) => {
           const mat = new THREE.MeshLambertMaterial({ color: 0x7777ff });
           group = new THREE.Mesh(geometry, mat);
+          group.name = 'Default';
           group.rotation.x = -0.5 * Math.PI;
           group.rotation.z = -0.5 * Math.PI;
           group.scale.set(0.6, 0.6, 0.6);
@@ -245,21 +317,30 @@ const init = ({ datasetFile, datasetFiles }) => {
 
           let vertex = 0;
 
-          geometry.children.forEach((children) => {
+          group.children.forEach((children) => {
             if (children.geometry) {
               vertex += children.geometry.attributes.position.count;
             }
           });
 
+          if (group.children.length === 0) {
+            vertex += group.geometry.attributes.position.count;
+          }
+
           setTimeout(() => {
+            const { x, y, z } = new THREE.Box3().setFromObject(group).getSize();
             renderMetaData({
               tableData: [
                 { name: 'File name', value: datasetFile.dataFile.filename },
                 { name: 'File size', value: bytesToSize(datasetFile.dataFile.filesize) },
                 { name: 'Vertex count', value: vertex },
                 { name: 'Triangle count', value: webGLRenderer.info.render.triangles },
+                { name: 'X Size', value: x.toFixed(2) },
+                { name: 'Y Size', value: y.toFixed(2) },
+                { name: 'Z Size', value: z.toFixed(2) },
               ],
             });
+            setMeshes([group], camera, controls);
           }, 500);
         },
         (xhr) => {
@@ -268,7 +349,7 @@ const init = ({ datasetFile, datasetFiles }) => {
             updateOBJLoaderProgress(Math.round(percentComplete));
           }
         },
-        () => {
+        (error) => {
           new ErrorModal({ message: 'There was a problem loading the file' });
         }
       );
@@ -315,15 +396,20 @@ const init = ({ datasetFile, datasetFiles }) => {
           });
 
           setTimeout(() => {
+            const { x, y, z } = new THREE.Box3().setFromObject(geometry).getSize();
             renderMetaData({
               tableData: [
                 { name: 'File name', value: datasetFile.dataFile.filename },
                 { name: 'File size', value: bytesToSize(datasetFile.dataFile.filesize) },
                 { name: 'Vertex count', value: vertex },
                 { name: 'Triangle count', value: webGLRenderer.info.render.triangles },
+                { name: 'X Size', value: x.toFixed(2) },
+                { name: 'Y Size', value: y.toFixed(2) },
+                { name: 'Z Size', value: z.toFixed(2) },
                 ...texturesData,
               ],
             });
+            setMeshes(getMeshesFromObject(geometry), camera, controls);
           }, 500);
         },
         (xhr) => {
@@ -375,14 +461,19 @@ const init = ({ datasetFile, datasetFiles }) => {
           });
 
           setTimeout(() => {
+            const { x, y, z } = new THREE.Box3().setFromObject(geometry).getSize();
             renderMetaData({
               tableData: [
                 { name: 'File name', value: datasetFile.dataFile.filename },
                 { name: 'File size', value: bytesToSize(datasetFile.dataFile.filesize) },
                 { name: 'Vertex count', value: vertex },
                 { name: 'Triangle count', value: webGLRenderer.info.render.triangles },
+                { name: 'X Size', value: x.toFixed(2) },
+                { name: 'Y Size', value: y.toFixed(2) },
+                { name: 'Z Size', value: z.toFixed(2) },
               ],
             });
+            setMeshes(getMeshesFromObject(geometry), camera, controls);
           }, 500);
         },
         (xhr) => {
