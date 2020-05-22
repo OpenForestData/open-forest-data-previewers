@@ -27,7 +27,7 @@ const init = ({ file }) => {
 
   // eslint-disable-next-line no-undef
   embedIframe(
-    'https://www.facebook.com/plugins/page.php?href=https://www.facebook.com/whiteastercom/&tabs=timeline&width=360px&height=420px&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true&appId'
+    'http://212.33.83.34:8042/osimis-viewer/app/index.html?study=d279e981-c99c42ff-1b4f98f6-9b8f3864-3ff04cc5'
   );
 };
 
