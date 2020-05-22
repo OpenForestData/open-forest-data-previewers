@@ -33,7 +33,6 @@ const configTiff = (fileId, doi) => {
 const init = ({ datasetFile, dataset }) => {
   document.querySelectorAll('.action-button').forEach((button) => {
     button.addEventListener('click', (e) => {
-      console.log(datasetFile, dataset);
       switch (e.target.dataset.action) {
         case 'preview': {
           previewTiff({
