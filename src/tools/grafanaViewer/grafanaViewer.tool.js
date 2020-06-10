@@ -4,6 +4,7 @@ import startPreview from '../core/js/retriever';
 const init = ({ file }) => {
   const root = document.querySelector('#root');
   file = file['data'];
+  const uid = file['uid'];
   let siteUrl = file['site_url'];
   let detailUrl = file['detail_url'];
   if (siteUrl[siteUrl.length - 1] !== '/') siteUrl += '/';
