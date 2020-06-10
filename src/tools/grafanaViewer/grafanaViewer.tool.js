@@ -1,17 +1,20 @@
+import axios from 'axios';
 import startPreview from '../core/js/retriever';
 
 const init = ({ file }) => {
   const root = document.querySelector('#root');
   file = file['data'];
-  let url = file['server_meta']['url'];
-  const uid = file['dashboard']['uid'];
-  const panels = file['dashboard']['panels'];
+  let siteUrl = file['site_url'];
+  let detailUrl = file['detail_url'];
+  if (siteUrl[siteUrl.length - 1] !== '/') siteUrl += '/';
+  if (detailUrl[0] === '/') detailUrl = detailUrl.substring(1);
+  if (detailUrl[detailUrl.length - 1] !== '/') detailUrl += '/';
+  const data = axios.get(`${siteUrl}${detailUrl}`);
+  const panels = data['dashboard']['panels'];
   panels.forEach((panel) => {
     const panelId = panel['id'];
 
-    if (url[url.length - 1] !== '/') url += '/';
-
-    const grafanaViewURL = `${url}d-solo/${uid}?panelId=${panelId}&fullscreen`;
+    const grafanaViewURL = `${siteUrl}d-solo/${uid}?panelId=${panelId}&fullscreen`;
 
     const iframe = document.createElement('iframe');
     iframe.frameBorder = '0';
