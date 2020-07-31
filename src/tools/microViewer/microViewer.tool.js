@@ -26,9 +26,7 @@ const init = ({ file }) => {
   file = file['data'];
 
   // eslint-disable-next-line no-undef
-  embedIframe(
-    'http://212.33.83.34:8042/osimis-viewer/app/index.html?study=d279e981-c99c42ff-1b4f98f6-9b8f3864-3ff04cc5'
-  );
+  embedIframe(file['site_url'] + 'osimis-viewer/app/index.html?study=' + file['uid']);
 };
 
 window.addEventListener('DOMContentLoaded', () => {
