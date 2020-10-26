@@ -2,8 +2,8 @@ import axios from 'axios';
 
 import startPreview from '../core/js/retriever';
 
-const SERVER = 'https://iipimage.biaman.pl/fcgi-bin/iipsrv.fcgi';
-const TIFF_UPLOADER = 'https://iipimage.biaman.pl/tiff';
+const SERVER = 'https://iipimage.openforestdata.pl/fcgi-bin/iipsrv.fcgi';
+const TIFF_UPLOADER = 'https://iipimage.openforestdata.pl/tiff';
 
 const previewTiff = ({ server = SERVER, image }) => {
   const root = document.querySelector('#root');
