@@ -44,7 +44,7 @@
     "pretty-quick": "^2.0.1"
   },
   "dependencies": {
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "three": "^0.116.1",
     "three-orbit-controls": "^82.1.0"
   },
