@@ -7,7 +7,6 @@ const init = ({ file }) => {
   const uid = file['uid'];
   let siteUrl = file['site_url'];
   let detailUrl = file['details_url'];
-  console.log(file, detailUrl);
 
   if (siteUrl[siteUrl.length - 1] !== '/') siteUrl += '/';
   if (detailUrl[0] === '/') detailUrl = detailUrl.substring(1);
