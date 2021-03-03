@@ -10,7 +10,7 @@ import { getFileName, bytesToSize, getFileExtension, ErrorModal } from '../core/
 const OrbitControls = OrbitControlsThree(THREE);
 
 const CONFIG = {
-  maxFileSize: 50000000,
+  maxFileSize: 419430400,
   texturesExtensions: ['png'],
   showHelpers: false,
 };

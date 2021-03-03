@@ -13,9 +13,15 @@ body {
   margin: 0 20px;
   cursor: pointer;
   border: none;
-  background-color: #ddd;
-  border-radius: 8px;
-  padding: 8px 13px;
+  background-color: #009444;
+  color: #fff;
+  font-size: 18px;
+  border-radius: 5px;
+  padding: 10px 20px;
+}
+
+.button:focus {
+  outline: none;
 }
 
 #root .canvas {
